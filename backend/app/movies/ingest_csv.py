@@ -19,6 +19,7 @@ from app.movies.models import (
     bridge_movie_genre,
     bridge_movie_person,
     bridge_movie_company,
+    FactMoviePerformance,
 )
 
 
@@ -218,6 +219,51 @@ async def recalcular_resumos(db: AsyncSession):
         resumo.nota_media_usuarios = media
     await db.commit()
 
+def converter_desempenho(linha: dict[str, str]) -> dict:
+    campos_decimais = [
+        "orcamento_usd",
+        "receita_usd",
+        "lucro_usd",
+        "orcamento_brl",
+        "receita_brl",
+        "lucro_brl",
+        "popularidade",
+        "nota_tmdb",
+        "nota_imdb",
+    ]
+
+    campos_inteiros = ["qtd_tmdb", "qtd_imdb"]
+
+    dados = {"sk_movie_id": linha["sk_movie_id"]}
+
+    for campo in campos_decimais:
+        dados[campo] = float(linha[campo]) if linha[campo] else None
+
+    for campo in campos_inteiros:
+        dados[campo] = int(float(linha[campo])) if linha[campo] else None
+
+    return dados
+
+async def importar_desempenho(db: AsyncSession, caminho: Path):
+    comando = insert(FactMoviePerformance).on_conflict_do_nothing(
+        index_elements=["sk_movie_id"]
+    )
+
+    with caminho.open(encoding="utf-8-sig", newline="") as arquivo:
+        leitor = csv.DictReader(arquivo)
+        lote = []
+
+        async with db.begin():
+            for linha in leitor:
+                lote.append(converter_desempenho(linha))
+
+                if len(lote) == 1000:
+                    await db.execute(comando, lote)
+                    lote.clear()
+
+            if lote:
+                await db.execute(comando, lote)
+
 async def main(pasta: Path):
     try:
         async with AsyncSessionLocal() as db:
@@ -256,6 +302,10 @@ async def main(pasta: Path):
                 pasta / "bridge_movie_company.csv",
                 bridge_movie_company,
                 ["sk_movie_id", "sk_company_id"],
+            )
+            await importar_desempenho(
+                db,
+                pasta / "fact_movies_performance.csv",
             )
             await recalcular_resumos(db)
         print("Importação concluída.")
