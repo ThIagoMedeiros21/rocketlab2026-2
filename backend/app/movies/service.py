@@ -9,10 +9,19 @@ async def list_movies(
     db: AsyncSession,
     page: int,
     page_size: int,
+    q: str | None = None,
 ) -> MovieListResponse:
     deslocamento = (page - 1) * page_size
+
+    filtros = []
+
+    if q and q.strip():
+        filtros.append(
+            DimMovie.titulo.ilike(f"%{q.strip()}%")
+        )
     consulta = (
         select(DimMovie)
+        .where(*filtros)
         .options(
             selectinload(DimMovie.genres),
             selectinload(DimMovie.reviews_summary),
@@ -38,7 +47,7 @@ async def list_movies(
         )
 
         items.append(item)
-    consulta_total = select(func.count()).select_from(DimMovie)
+    consulta_total =  select(func.count()).select_from(DimMovie).where(*filtros)
     total = await db.scalar(consulta_total) or 0
 
     return MovieListResponse(
