@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, Field
 from datetime import datetime, date
 from decimal import Decimal
 
@@ -80,3 +80,9 @@ class MovieUpdate(BaseModel):
         if valor is None or not valor.strip():
             raise ValueError("O título não pode ser nulo ou vazio")
         return valor.strip()
+
+
+class ReviewCreate(BaseModel):
+    nome : str
+    nota: float = Field(ge=0, le=10, allow_inf_nan=False)
+    comentario : str

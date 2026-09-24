@@ -1,9 +1,13 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.movies.models import DimMovie
-from app.movies.schemas import MovieListItem, MovieListResponse, ItemsReview, MoviePerformance, MovieDetail, MovieCreate, MovieCreated, MovieUpdate
-from pydantic import BaseModel, field_validator
+from app.movies.models import DimMovie, MovieReview, DimReview
+from app.movies.schemas import (
+    MovieListItem, MovieListResponse, 
+    ItemsReview, MoviePerformance, 
+    MovieDetail, MovieCreate, 
+    MovieCreated, MovieUpdate, ReviewCreate
+)
 
 async def list_movies(
     db: AsyncSession,
@@ -194,3 +198,55 @@ async def delete_movie(
     await db.commit()
 
     return True
+
+async def create_review(
+    db: AsyncSession,
+    movie_id: str,
+    review_data: ReviewCreate,
+) -> ItemsReview | None:
+    filme = await db.get(DimMovie, movie_id)
+
+    if filme is None:
+        return None
+
+    avaliacao = MovieReview(
+        sk_movie_id=movie_id,
+        nome=review_data.nome,
+        nota=review_data.nota,
+        comentario=review_data.comentario,
+    )
+
+    db.add(avaliacao)
+    await db.flush()
+
+    consulta_resumo = (
+        select(
+            func.count(MovieReview.sk_movie_review_id),
+            func.avg(MovieReview.nota),
+        )
+        .where(MovieReview.sk_movie_id == movie_id)
+    )
+
+    resultado = await db.execute(consulta_resumo)
+    quantidade, media = resultado.one()
+    resumo = await db.scalar(
+        select(DimReview).where(DimReview.sk_movie_id == movie_id)
+    )
+
+    if resumo is None:
+        resumo = DimReview(sk_movie_id=movie_id)
+        db.add(resumo)
+
+    resumo.qtd_avaliacoes_usuarios = quantidade
+    resumo.nota_media_usuarios = media
+
+    await db.commit()
+    await db.refresh(avaliacao)
+
+    return ItemsReview(
+        id=avaliacao.sk_movie_review_id,
+        nome=avaliacao.nome,
+        nota=avaliacao.nota,
+        comentario=avaliacao.comentario,
+        created_at=avaliacao.created_at,
+    )
