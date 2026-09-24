@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime, date
 from decimal import Decimal
 
@@ -69,3 +69,14 @@ class MovieCreated(BaseModel):
     id: str
     id_filme: str
     titulo: str
+
+class MovieUpdate(BaseModel):
+    titulo: str | None = None
+    ano_lancamento: int | None = None
+    sinopse: str | None = None
+    @field_validator("titulo")
+    @classmethod
+    def validar_titulo(cls, valor: str | None) -> str:
+        if valor is None or not valor.strip():
+            raise ValueError("O título não pode ser nulo ou vazio")
+        return valor.strip()

@@ -2,8 +2,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.movies.models import DimMovie
-from app.movies.schemas import MovieListItem, MovieListResponse, ItemsReview, MoviePerformance, MovieDetail, MovieCreate, MovieCreated
-
+from app.movies.schemas import MovieListItem, MovieListResponse, ItemsReview, MoviePerformance, MovieDetail, MovieCreate, MovieCreated, MovieUpdate
+from pydantic import BaseModel, field_validator
 
 async def list_movies(
     db: AsyncSession,
@@ -160,6 +160,23 @@ async def create_movie(
         id_filme=movie.id_filme,
         titulo=movie.titulo,
     )
-    
-    
-    
+
+
+async def update_movie(
+    db: AsyncSession,
+    movie_id: str,
+    movie_data: MovieUpdate,
+) -> MovieDetail | None:
+    filme = await db.get(DimMovie, movie_id)
+
+    if filme is None:
+        return None
+
+    alteracoes = movie_data.model_dump(exclude_unset=True)
+
+    for campo, valor in alteracoes.items():
+        setattr(filme, campo, valor)
+
+    await db.commit()
+
+    return await get_movie(db=db, movie_id=movie_id)
