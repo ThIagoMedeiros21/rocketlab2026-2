@@ -8,7 +8,13 @@ from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import AsyncSessionLocal, engine
-from app.movies.models import DimMovie, DimGenre, bridge_movie_genre, DimReview
+from app.movies.models import (
+    DimMovie,
+    DimGenre,
+    DimReview,
+    MovieReview,
+    bridge_movie_genre,
+)
 
 
 def ler_filmes(caminho: Path):
@@ -122,6 +128,32 @@ async def importar_resumos(db: AsyncSession, caminho: Path):
             if lote:
                 await db.execute(comando, lote)
 
+async def importar_avaliacoes(db: AsyncSession, caminho: Path):
+    comando = insert(MovieReview).on_conflict_do_nothing(
+        index_elements=["sk_movie_review_id"]
+    )
+
+    with caminho.open(encoding="utf-8-sig", newline="") as arquivo:
+        leitor = csv.DictReader(arquivo)
+        lote = []
+
+        async with db.begin():
+            for linha in leitor:
+                lote.append({
+                    "sk_movie_review_id": linha["sk_movie_review_id"],
+                    "sk_movie_id": linha["sk_movie_id"],
+                    "nome": linha["nome"],
+                    "nota": float(linha["nota"]),
+                    "comentario": linha["comentario"],
+                })
+
+                if len(lote) == 1000:
+                    await db.execute(comando, lote)
+                    lote.clear()
+
+            if lote:
+                await db.execute(comando, lote)
+
 
 async def main(pasta: Path):
     try:
@@ -132,7 +164,9 @@ async def main(pasta: Path):
                 db, pasta / "bridge_movie_genre.csv"
             )
             await importar_resumos(db, pasta / "dim_reviews.csv")
-
+            await importar_avaliacoes(
+                db, pasta / "movies_reviews.csv"
+            )
         print("Importação concluída.")
     finally:
         await engine.dispose()
