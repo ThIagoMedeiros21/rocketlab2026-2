@@ -6,6 +6,7 @@ from pathlib import Path
 
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select, update
 
 from app.db.session import AsyncSessionLocal, engine
 from app.movies.models import (
@@ -184,6 +185,38 @@ async def importar_csv_texto(
             if lote:
                 await db.execute(comando, lote)
 
+async def recalcular_resumos(db: AsyncSession):
+    await db.execute(
+        update(DimReview).values(
+            qtd_avaliacoes_usuarios=0,
+            nota_media_usuarios=None,
+        )
+    )
+    consulta = (
+        select(
+            MovieReview.sk_movie_id,
+            func.count(MovieReview.sk_movie_review_id),
+            func.avg(MovieReview.nota),
+        )
+        .group_by(MovieReview.sk_movie_id)
+    )
+    
+    resultado = await db.execute(consulta)
+
+    for movie_id, quantidade, media in resultado:
+        resumo = await db.scalar(
+            select(DimReview).where(
+                DimReview.sk_movie_id == movie_id
+            )
+        )
+
+        if resumo is None:
+            resumo = DimReview(sk_movie_id=movie_id)
+            db.add(resumo)
+
+        resumo.qtd_avaliacoes_usuarios = quantidade
+        resumo.nota_media_usuarios = media
+    await db.commit()
 
 async def main(pasta: Path):
     try:
@@ -224,7 +257,9 @@ async def main(pasta: Path):
                 bridge_movie_company,
                 ["sk_movie_id", "sk_company_id"],
             )
+            await recalcular_resumos(db)
         print("Importação concluída.")
+        
     finally:
         await engine.dispose()
 
@@ -233,5 +268,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("pasta", type=Path)
     argumentos = parser.parse_args()
-
     asyncio.run(main(argumentos.pasta))
