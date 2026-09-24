@@ -13,7 +13,11 @@ from app.movies.models import (
     DimGenre,
     DimReview,
     MovieReview,
+    DimPerson,
+    DimCompany,
     bridge_movie_genre,
+    bridge_movie_person,
+    bridge_movie_company,
 )
 
 
@@ -155,6 +159,32 @@ async def importar_avaliacoes(db: AsyncSession, caminho: Path):
                 await db.execute(comando, lote)
 
 
+async def importar_csv_texto(
+    db: AsyncSession,
+    caminho: Path,
+    tabela,
+    chaves: list[str],
+):
+    comando = insert(tabela).on_conflict_do_nothing(
+        index_elements=chaves
+    )
+
+    with caminho.open(encoding="utf-8-sig", newline="") as arquivo:
+        leitor = csv.DictReader(arquivo)
+        lote = []
+
+        async with db.begin():
+            for linha in leitor:
+                lote.append(linha)
+
+                if len(lote) == 1000:
+                    await db.execute(comando, lote)
+                    lote.clear()
+
+            if lote:
+                await db.execute(comando, lote)
+
+
 async def main(pasta: Path):
     try:
         async with AsyncSessionLocal() as db:
@@ -166,6 +196,33 @@ async def main(pasta: Path):
             await importar_resumos(db, pasta / "dim_reviews.csv")
             await importar_avaliacoes(
                 db, pasta / "movies_reviews.csv"
+            )
+            await importar_csv_texto(
+                db,
+                pasta / "dim_people.csv",
+                DimPerson,
+                ["sk_person_id"],
+            )
+
+            await importar_csv_texto(
+                db,
+                pasta / "dim_companies.csv",
+                DimCompany,
+                ["sk_company_id"],
+            )
+
+            await importar_csv_texto(
+                db,
+                pasta / "bridge_movie_person.csv",
+                bridge_movie_person,
+                ["sk_movie_id", "sk_person_id"],
+            )
+
+            await importar_csv_texto(
+                db,
+                pasta / "bridge_movie_company.csv",
+                bridge_movie_company,
+                ["sk_movie_id", "sk_company_id"],
             )
         print("Importação concluída.")
     finally:
