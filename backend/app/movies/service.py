@@ -180,3 +180,17 @@ async def update_movie(
     await db.commit()
 
     return await get_movie(db=db, movie_id=movie_id)
+
+
+async def delete_movie(
+    db: AsyncSession,
+    movie_id: str,
+) -> bool:
+    filme = await db.get(DimMovie, movie_id)
+
+    if filme is None:
+        return False
+    await db.delete(filme)
+    await db.commit()
+
+    return True
