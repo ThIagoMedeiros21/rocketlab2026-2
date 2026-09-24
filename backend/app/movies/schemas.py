@@ -52,4 +52,20 @@ class MovieDetail(MovieListItem):
     roteiristas: list[str]
     desempenho: MoviePerformance | None
     avaliacoes: list[ItemsReview]
-    
+
+
+class MovieCreate(BaseModel):
+    id_filme: str
+    titulo: str
+    data_lancamento: date | None = None
+    ano_lancamento: int | None = None
+    duracao_minutos: int | None = None
+    status_filme: str | None = None
+    sinopse: str | None = None
+    url_poster: str | None = None
+    url_backdrop: str | None = None
+
+class MovieCreated(BaseModel):
+    id: str
+    id_filme: str
+    titulo: str

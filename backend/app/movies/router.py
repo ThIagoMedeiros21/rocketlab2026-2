@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.movies.schemas import MovieListResponse, MovieDetail
-from app.movies.service import list_movies, get_movie
+from app.movies.schemas import MovieListResponse, MovieDetail, MovieCreate, MovieCreated
+from app.movies.service import list_movies, get_movie, create_movie
 
 router = APIRouter()
 @router.get("", response_model=MovieListResponse)
@@ -22,3 +22,10 @@ async def get_movies_by_id(movie_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Filme não encontrado")
 
     return filme
+
+@router.post("", response_model=MovieCreated, status_code=201)
+async def post_movie(
+    movie_data: MovieCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    return await create_movie(db=db, movie_data=movie_data)

@@ -2,7 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.movies.models import DimMovie
-from app.movies.schemas import MovieListItem, MovieListResponse, ItemsReview, MoviePerformance, MovieDetail
+from app.movies.schemas import MovieListItem, MovieListResponse, ItemsReview, MoviePerformance, MovieDetail, MovieCreate, MovieCreated
 
 
 async def list_movies(
@@ -124,3 +124,33 @@ async def get_movie(
         desempenho=desempenho,
         avaliacoes=avaliacoes,
     )
+
+
+async def create_movie(
+    db: AsyncSession,
+    movie_data: MovieCreate,
+) -> MovieCreated:
+    movie = DimMovie(
+        id_filme=movie_data.id_filme,
+        titulo=movie_data.titulo,
+        data_lancamento=movie_data.data_lancamento,
+        ano_lancamento=movie_data.ano_lancamento,
+        duracao_minutos=movie_data.duracao_minutos,
+        status_filme=movie_data.status_filme,
+        sinopse=movie_data.sinopse,
+        url_poster=movie_data.url_poster,
+        url_backdrop=movie_data.url_backdrop,
+    )
+
+    db.add(movie)
+    await db.commit()
+    await db.refresh(movie)
+
+    return MovieCreated(
+        id=movie.sk_movie_id,
+        id_filme=movie.id_filme,
+        titulo=movie.titulo,
+    )
+    
+    
+    
