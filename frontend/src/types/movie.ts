@@ -14,3 +14,40 @@ export interface MovieListResponse {
   total: number
   total_pages: number
 }
+
+export interface MovieReview {
+  id: string
+  nome: string
+  nota: number
+  comentario: string
+  created_at: string
+}
+
+export interface MoviePerformance {
+  orcamento_usd: string | null
+  receita_usd: string | null
+  lucro_usd: string
+  orcamento_brl: string | null
+  receita_brl: string | null
+  lucro_brl: string
+  popularidade: number | null
+  nota_tmdb: number | null
+  qtd_tmdb: number | null
+  nota_imdb: number | null
+  qtd_imdb: number | null
+}
+
+export interface MovieDetail extends MovieListItem {
+  id_filme: string
+  data_lancamento: string | null
+  duracao_minutos: number | null
+  status_filme: string | null
+  sinopse: string | null
+  url_backdrop: string | null
+  produtoras: string[]
+  atores: string[]
+  diretores: string[]
+  roteiristas: string[]
+  desempenho: MoviePerformance | null
+  avaliacoes: MovieReview[]
+}

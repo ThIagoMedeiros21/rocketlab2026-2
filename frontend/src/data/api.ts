@@ -1,7 +1,4 @@
-import type {
-  MovieDetail,
-  MovieListResponse,
-} from '../types/movie'
+import type { MovieDetail, MovieListResponse } from '../types/movie'
 
 const API_URL = 'http://127.0.0.1:8000/api/v1'
 
