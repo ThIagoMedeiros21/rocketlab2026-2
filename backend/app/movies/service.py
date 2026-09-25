@@ -1,7 +1,14 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.movies.models import DimMovie, MovieReview, DimReview
+from uuid import uuid4
+from app.movies.models import (
+    DimMovie,
+    MovieReview,
+    DimReview,
+    DimGenre,
+    DimPerson,
+)
 from app.movies.schemas import (
     MovieListItem, MovieListResponse, 
     ItemsReview, MoviePerformance, 
@@ -143,16 +150,45 @@ async def create_movie(
     db: AsyncSession,
     movie_data: MovieCreate,
 ) -> MovieCreated:
+    generos = []
+
+    for nome in movie_data.generos:
+        genero = await db.scalar(
+            select(DimGenre).where(DimGenre.nome_genero == nome)
+        )
+
+        if genero is None:
+            genero = DimGenre(nome_genero=nome)
+
+        generos.append(genero)
+
+    diretores = []
+
+    for nome in movie_data.diretores:
+        diretor = await db.scalar(
+            select(DimPerson).where(
+                DimPerson.nome_pessoa == nome,
+                DimPerson.tipo_pessoa == "Diretor",
+            )
+        )
+
+        if diretor is None:
+            diretor = DimPerson(
+                nome_pessoa=nome,
+                tipo_pessoa="Diretor",
+            )
+
+        diretores.append(diretor)
+
+    dados = movie_data.model_dump(
+        exclude={"generos", "diretores"}
+    )
+
     movie = DimMovie(
-        id_filme=movie_data.id_filme,
-        titulo=movie_data.titulo,
-        data_lancamento=movie_data.data_lancamento,
-        ano_lancamento=movie_data.ano_lancamento,
-        duracao_minutos=movie_data.duracao_minutos,
-        status_filme=movie_data.status_filme,
-        sinopse=movie_data.sinopse,
-        url_poster=movie_data.url_poster,
-        url_backdrop=movie_data.url_backdrop,
+        **dados,
+        id_filme=f"manual:{uuid4().hex}",
+        genres=generos,
+        people=diretores,
     )
 
     db.add(movie)

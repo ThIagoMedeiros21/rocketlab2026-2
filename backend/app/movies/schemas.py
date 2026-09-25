@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, field_validator, Field
+from pydantic import BaseModel, ConfigDict, field_validator, Field, StringConstraints
 from datetime import datetime, date
 from decimal import Decimal
+from typing import Annotated
 
 class MovieListItem(BaseModel):
     id : str
@@ -53,9 +54,17 @@ class MovieDetail(MovieListItem):
     desempenho: MoviePerformance | None
     avaliacoes: list[ItemsReview]
 
+NomeGenero = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=50),
+]
+
+NomeDiretor = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=255),
+]
 
 class MovieCreate(BaseModel):
-    id_filme: str
     titulo: str
     data_lancamento: date | None = None
     ano_lancamento: int | None = None
@@ -64,6 +73,15 @@ class MovieCreate(BaseModel):
     sinopse: str | None = None
     url_poster: str | None = None
     url_backdrop: str | None = None
+    generos: list[NomeGenero] = Field(default_factory=list)
+    diretores: list[NomeDiretor] = Field(default_factory=list)
+
+    @field_validator("generos", "diretores")
+    @classmethod
+    def validar_nomes_duplicados(cls, nomes: list[str]) -> list[str]:
+        if len({nome.casefold() for nome in nomes}) != len(nomes):
+            raise ValueError("Não envie nomes duplicados")
+        return nomes
 
 class MovieCreated(BaseModel):
     id: str
