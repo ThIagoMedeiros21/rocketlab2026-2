@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.auth.dependencies import require_admin
 from app.db.session import get_db
 from app.movies.schemas import MovieListResponse, MovieDetail, MovieCreate, MovieCreated, MovieUpdate, ItemsReview, ReviewCreate
 from app.movies.service import list_movies, get_movie, create_movie, update_movie, delete_movie, create_review
@@ -24,14 +24,14 @@ async def get_movies_by_id(movie_id: str, db: AsyncSession = Depends(get_db)):
 
     return filme
 
-@router.post("", response_model = MovieCreated, status_code = 201)
+@router.post("", response_model=MovieCreated, status_code=201, dependencies=[Depends(require_admin)])
 async def post_movie(
     movie_data: MovieCreate,
     db: AsyncSession = Depends(get_db),
 ):
     return await create_movie(db=db, movie_data=movie_data)
 
-@router.patch("/{movie_id}", response_model=MovieDetail)
+@router.patch("/{movie_id}", response_model=MovieDetail, dependencies=[Depends(require_admin)])
 async def patch_movie(
     movie_id: str,
     movie_data: MovieUpdate,
@@ -48,7 +48,7 @@ async def patch_movie(
 
     return filme
 
-@router.delete("/{movie_id}", status_code=204)
+@router.delete("/{movie_id}", status_code=204, dependencies=[Depends(require_admin)])
 async def remove_movie(
     movie_id: str,
     db: AsyncSession = Depends(get_db),
