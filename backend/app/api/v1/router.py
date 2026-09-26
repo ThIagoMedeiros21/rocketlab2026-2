@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.auth.router import router as auth_router
 from app.movies.router import router as movies_router
+from app.dashboard.router import router as dashboard_router
 
 api_router = APIRouter()
 
@@ -15,4 +16,10 @@ api_router.include_router(
     movies_router,
     prefix="/movies",
     tags=["movies"],
+)
+
+api_router.include_router(
+    dashboard_router,
+    prefix="/dashboard",
+    tags=["dashboard"],
 )
