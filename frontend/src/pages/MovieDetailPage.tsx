@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchMovie } from '../data/api'
 import type { MovieDetail } from '../types/movie'
+import ReviewForm from '../components/ReviewForm'
 
 function PeopleGroup({ title, people }: { title: string; people: string[] }) {
   if (!people.length) return null
@@ -19,7 +20,21 @@ export default function MovieDetailPage() {
   const [movie, setMovie] = useState<MovieDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
+  async function refreshMovie() {
+    if (!movieId) return
 
+    setRefreshError(null)
+
+    try {
+      const updatedMovie = await fetchMovie(movieId)
+      setMovie(updatedMovie)
+    } catch {
+      setRefreshError(
+        'Sua avaliação foi salva, mas não conseguimos atualizar os dados da tela.',
+      )
+    }
+  }
   useEffect(() => {
     if (!movieId) return
 
@@ -82,14 +97,160 @@ export default function MovieDetailPage() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-16 sm:px-8 lg:grid-cols-[1.4fr_0.6fr] lg:px-12">
-        <section className="space-y-8">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8"><h2 className="text-xl font-bold">Sobre o filme</h2><p className="mt-4 leading-8 text-slate-300">{movie.sinopse || 'Sinopse não disponível.'}</p></div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8"><h2 className="text-xl font-bold">Equipe</h2><div className="mt-6 grid gap-6 sm:grid-cols-2"><PeopleGroup title="Direção" people={movie.diretores} /><PeopleGroup title="Roteiro" people={movie.roteiristas} /><PeopleGroup title="Elenco" people={movie.atores} /><PeopleGroup title="Produtoras" people={movie.produtoras} /></div></div>
-          <section><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-bold">Avaliações</h2><span className="text-sm text-slate-500">{movie.avaliacoes.length} registrada(s)</span></div><div className="space-y-3">{movie.avaliacoes.length ? movie.avaliacoes.map((review) => <article key={review.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><div className="flex items-center justify-between gap-4"><strong>{review.nome}</strong><span className="font-bold text-amber-400">★ {review.nota.toFixed(1)}</span></div><p className="mt-3 text-sm leading-6 text-slate-300">{review.comentario}</p><time className="mt-3 block text-xs text-slate-500">{new Date(review.created_at).toLocaleDateString('pt-BR')}</time></article>) : <p className="rounded-2xl border border-dashed border-white/15 p-6 text-slate-400">Ainda não há avaliações para este filme.</p>}</div></section>
+            <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-16 sm:px-8 lg:grid-cols-[1.4fr_0.6fr] lg:px-12">
+        <section className="min-w-0 space-y-8">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+            <h2 className="text-xl font-bold">Sobre o filme</h2>
+
+            <p className="mt-4 leading-8 text-slate-300">
+              {movie.sinopse || 'Sinopse não disponível.'}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+            <h2 className="text-xl font-bold">Equipe</h2>
+
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <PeopleGroup title="Direção" people={movie.diretores} />
+              <PeopleGroup title="Roteiro" people={movie.roteiristas} />
+              <PeopleGroup title="Elenco" people={movie.atores} />
+              <PeopleGroup title="Produtoras" people={movie.produtoras} />
+            </div>
+          </div>
+
+          <ReviewForm
+            key={movie.id}
+            movieId={movie.id}
+            onCreated={() => {
+              void refreshMovie()
+            }}
+          />
+
+          {refreshError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-200"
+            >
+              <p>{refreshError}</p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  void refreshMovie()
+                }}
+                className="mt-2 font-semibold underline"
+              >
+                Atualizar dados
+              </button>
+            </div>
+          )}
+
+          <section>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-bold">Avaliações</h2>
+
+              <span className="text-sm text-slate-400">
+                {movie.avaliacoes.length}{' '}
+                {movie.avaliacoes.length === 1
+                  ? 'avaliação registrada'
+                  : 'avaliações registradas'}
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {movie.avaliacoes.length > 0 ? (
+                movie.avaliacoes.map((review) => (
+                  <article
+                    key={review.id}
+                    className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <strong className="min-w-0 break-words">
+                        {review.nome}
+                      </strong>
+
+                      <span className="shrink-0 font-bold text-amber-400">
+                        ★ {review.nota.toFixed(1)}
+                        <span className="ml-1 text-xs font-normal text-slate-400">
+                          / 10
+                        </span>
+                      </span>
+                    </div>
+
+                    <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                      {review.comentario}
+                    </p>
+
+                    <time
+                      dateTime={review.created_at}
+                      className="mt-3 block text-xs text-slate-400"
+                    >
+                      {new Date(review.created_at).toLocaleDateString('pt-BR')}
+                    </time>
+                  </article>
+                ))
+              ) : (
+                <p className="rounded-2xl border border-dashed border-white/15 p-6 text-slate-400">
+                  Ainda não há avaliações. Seja a primeira pessoa a compartilhar
+                  sua opinião!
+                </p>
+              )}
+            </div>
+          </section>
         </section>
 
-        <aside className="h-fit rounded-3xl border border-white/10 bg-white/[0.04] p-6"><h2 className="text-xl font-bold">Desempenho</h2>{performance ? <div className="mt-6 space-y-4 text-sm"><div className="flex justify-between gap-4"><span className="text-slate-400">Popularidade</span><strong>{performance.popularidade?.toFixed(1) ?? '—'}</strong></div><div className="flex justify-between gap-4"><span className="text-slate-400">Nota TMDB</span><strong>{performance.nota_tmdb?.toFixed(1) ?? '—'}</strong></div><div className="flex justify-between gap-4"><span className="text-slate-400">Nota IMDb</span><strong>{performance.nota_imdb?.toFixed(1) ?? '—'}</strong></div><div className="my-4 border-t border-white/10" /><div className="flex justify-between gap-4"><span className="text-slate-400">Lucro (USD)</span><strong className="text-emerald-300">{performance.lucro_usd}</strong></div><div className="flex justify-between gap-4"><span className="text-slate-400">Lucro (BRL)</span><strong className="text-emerald-300">{performance.lucro_brl}</strong></div></div> : <p className="mt-4 text-sm leading-6 text-slate-400">Não há dados de desempenho disponíveis para este filme.</p>}</aside>
+        <aside className="min-w-0 h-fit rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+          <h2 className="text-xl font-bold">Desempenho</h2>
+
+          {performance ? (
+            <dl className="mt-6 space-y-4 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-400">Popularidade</dt>
+                <dd className="font-semibold">
+                  {performance.popularidade?.toFixed(1) ?? '—'}
+                </dd>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-400">Nota TMDB</dt>
+                <dd className="font-semibold">
+                  {performance.nota_tmdb?.toFixed(1) ?? '—'}
+                </dd>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-400">Nota IMDb</dt>
+                <dd className="font-semibold">
+                  {performance.nota_imdb?.toFixed(1) ?? '—'}
+                </dd>
+              </div>
+
+              <div className="flex flex-wrap justify-between gap-2 border-t border-white/10 pt-4">
+                <dt className="text-slate-400">Lucro (USD)</dt>
+                <dd className="font-semibold">
+                  {Number(performance.lucro_usd).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'USD',
+                  })}
+                </dd>
+              </div>
+
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-slate-400">Lucro (BRL)</dt>
+                <dd className="font-semibold">
+                  {Number(performance.lucro_brl).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="mt-4 text-sm leading-6 text-slate-400">
+              Não há dados de desempenho disponíveis para este filme.
+            </p>
+          )}
+        </aside>
       </div>
     </main>
   )

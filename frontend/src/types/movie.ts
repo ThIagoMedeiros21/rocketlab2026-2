@@ -51,3 +51,9 @@ export interface MovieDetail extends MovieListItem {
   desempenho: MoviePerformance | null
   avaliacoes: MovieReview[]
 }
+
+export interface ReviewCreate {
+  nome: string
+  nota: number
+  comentario: string
+}
