@@ -3,7 +3,11 @@ import type {
   MovieListResponse,
   MovieReview,
   ReviewCreate,
+  MovieCreate,
+  MovieCreated
 } from '../types/movie'
+
+import type { LoginRequest, TokenResponse } from '../types/auth'
 
 const API_URL = 'http://127.0.0.1:8000/api/v1'
 
@@ -62,4 +66,56 @@ export async function createReview(
   }
 
   return response.json() as Promise<MovieReview>
+}
+
+export async function login(
+  credentials: LoginRequest,
+): Promise<TokenResponse> {
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(credentials),
+  })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Usuário ou senha inválidos.')
+    }
+
+    throw new Error('Não foi possível entrar. Tente novamente.')
+  }
+
+  return response.json() as Promise<TokenResponse>
+}
+
+export async function createMovie(
+  movie: MovieCreate,
+  token: string,
+): Promise<MovieCreated> {
+  const response = await fetch(`${API_URL}/movies`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(movie),
+  })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Sua sessão expirou ou é inválida. Entre novamente.')
+    }
+
+    if (response.status === 422) {
+      throw new Error(
+        'Confira os campos. Gêneros e diretores não podem conter nomes vazios ou duplicados.',
+      )
+    }
+
+    throw new Error('Não foi possível cadastrar o filme. Tente novamente.')
+  }
+
+  return response.json() as Promise<MovieCreated>
 }

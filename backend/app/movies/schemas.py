@@ -65,7 +65,10 @@ NomeDiretor = Annotated[
 ]
 
 class MovieCreate(BaseModel):
-    titulo: str
+    titulo: Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1),
+]
     data_lancamento: date | None = None
     ano_lancamento: int | None = None
     duracao_minutos: int | None = None

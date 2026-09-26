@@ -57,3 +57,22 @@ export interface ReviewCreate {
   nota: number
   comentario: string
 }
+
+export interface MovieCreate {
+  titulo: string
+  data_lancamento?: string | null
+  ano_lancamento?: number | null
+  duracao_minutos?: number | null
+  status_filme?: string | null
+  sinopse?: string | null
+  url_poster?: string | null
+  url_backdrop?: string | null
+  generos?: string[]
+  diretores?: string[]
+}
+
+export interface MovieCreated {
+  id: string
+  id_filme: string
+  titulo: string
+}

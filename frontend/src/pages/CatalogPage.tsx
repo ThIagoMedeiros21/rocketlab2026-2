@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { fetchMovies } from '../data/api'
 import type { MovieListItem, MovieListResponse } from '../types/movie'
 import { MovieCard } from '../components/MovieCard'
+import { Link } from 'react-router-dom'
 
 function CatalogPage() {
   const [data, setData] = useState<MovieListResponse | null>(null)
@@ -50,11 +51,33 @@ function CatalogPage() {
             </h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
               Explore o catálogo, encontre novos favoritos e descubra filmes que merecem sua próxima sessão.
+              
             </p>
+            
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm text-slate-300 backdrop-blur">
-            <span className="block text-xs uppercase tracking-widest text-slate-500">Catálogo</span>
-            <span className="mt-1 block text-2xl font-bold text-white">Em destaque</span>
+            <Link
+              to="/admin"
+              className="inline-flex shrink-0 items-center gap-3 self-start rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-amber-400/30 hover:bg-amber-400/5 hover:text-amber-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="h-5 w-5 shrink-0 text-amber-400"
+              >
+                <path d="M12 3 4 6v5c0 5 4.5 8.5 8 10 3.5-1.5 8-5 8-10V6l-8-3Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+
+  Administração
+</Link>
+            
           </div>
         </header>
 
