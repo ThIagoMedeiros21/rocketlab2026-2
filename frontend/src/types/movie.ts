@@ -76,3 +76,9 @@ export interface MovieCreated {
   id_filme: string
   titulo: string
 }
+
+export interface MovieUpdate {
+  titulo?: string
+  ano_lancamento?: number | null
+  sinopse?: string | null
+}

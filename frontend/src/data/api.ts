@@ -4,7 +4,8 @@ import type {
   MovieReview,
   ReviewCreate,
   MovieCreate,
-  MovieCreated
+  MovieCreated,
+  MovieUpdate
 } from '../types/movie'
 
 import type { LoginRequest, TokenResponse } from '../types/auth'
@@ -118,4 +119,65 @@ export async function createMovie(
   }
 
   return response.json() as Promise<MovieCreated>
+}
+
+async function checkAdminResponse(response: Response): Promise<void> {
+  if (response.ok) return
+
+  if (response.status === 401) {
+    throw new Error('Sua sessão expirou ou é inválida. Saia e entre novamente.')
+  }
+
+  if (response.status === 403) {
+    throw new Error('Você não tem permissão para realizar esta ação.')
+  }
+
+  if (response.status === 404) {
+    throw new Error('Este filme não foi encontrado. Atualize a listagem.')
+  }
+
+  if (response.status === 422) {
+    throw new Error('Confira os campos enviados.')
+  }
+
+  throw new Error('Não foi possível concluir a operação. Tente novamente.')
+}
+
+export async function updateMovie(
+  movieId: string,
+  movie: MovieUpdate,
+  token: string,
+): Promise<MovieDetail> {
+  const response = await fetch(
+    `${API_URL}/movies/${encodeURIComponent(movieId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(movie),
+    },
+  )
+
+  await checkAdminResponse(response)
+  return response.json() as Promise<MovieDetail>
+}
+
+export async function deleteMovie(
+  movieId: string,
+  token: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/movies/${encodeURIComponent(movieId)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  )
+
+  await checkAdminResponse(response)
+  // O DELETE retorna 204, sem JSON no corpo.
 }
