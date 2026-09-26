@@ -7,7 +7,7 @@ import type {
   MovieCreated,
   MovieUpdate
 } from '../types/movie'
-
+import type { DashboardResponse } from '../types/dashboard'
 import type { LoginRequest, TokenResponse } from '../types/auth'
 
 const API_URL = 'http://127.0.0.1:8000/api/v1'
@@ -180,4 +180,24 @@ export async function deleteMovie(
 
   await checkAdminResponse(response)
   // O DELETE retorna 204, sem JSON no corpo.
+}
+
+export async function fetchDashboard(
+  token: string,
+  minimoAvaliacoes = 3,
+  signal?: AbortSignal,
+): Promise<DashboardResponse> {
+  const params = new URLSearchParams({
+    minimo_avaliacoes: String(minimoAvaliacoes),
+  })
+
+  const response = await fetch(`${API_URL}/dashboard?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    signal,
+  })
+
+  await checkAdminResponse(response)
+  return response.json() as Promise<DashboardResponse>
 }

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import MovieCreateForm from '../components/MovieCreateForm'
 import MovieManageList from '../components/MovieManageList'
-
+import AdminDashboard from '../components/AdminDashboard'
 type AdminPageProps = {
   token: string
   onLogout: () => void
@@ -13,7 +13,9 @@ export default function AdminPage({
   token,
   onLogout,
 }: AdminPageProps) {
-  const [view, setView] = useState<'manage' | 'create'>('manage')
+  const [view, setView] = useState<'dashboard' | 'manage' | 'create'>(
+  'dashboard',
+)
 
   function tabClasses(active: boolean) {
     return [
@@ -63,6 +65,14 @@ export default function AdminPage({
           >
             <button
               type="button"
+              aria-pressed={view === 'dashboard'}
+              onClick={() => setView('dashboard')}
+              className={tabClasses(view === 'dashboard')}
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
               aria-pressed={view === 'manage'}
               onClick={() => setView('manage')}
               className={tabClasses(view === 'manage')}
@@ -81,11 +91,11 @@ export default function AdminPage({
           </div>
 
           <div className="mt-6">
-            {view === 'manage' ? (
-              <MovieManageList token={token} />
-            ) : (
-              <MovieCreateForm token={token} />
-            )}
+            {view === 'dashboard' && <AdminDashboard token={token} />}
+
+            {view === 'manage' && <MovieManageList token={token} />}
+
+            {view === 'create' && <MovieCreateForm token={token} />}
           </div>
         </section>
       </div>
