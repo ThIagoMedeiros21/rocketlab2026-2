@@ -8,7 +8,8 @@ Projeto desenvolvido para a atividade RocketLab 2026.2, com frontend em React, T
 
 ### Explorar e avaliar
 
-- Navegar pelo catálogo com paginação e pesquisar filmes pelo título.
+- Navegar pelo catálogo com paginação, pesquisar por título e filtrar por gênero.
+- Combinar título e gênero na mesma pesquisa ou limpar os filtros para voltar ao catálogo completo.
 - Abrir os detalhes de um filme a partir do seu card, sem precisar pesquisar por ID.
 - Consultar sinopse, gêneros, direção, roteiro, elenco e produtoras, quando disponíveis.
 - Visualizar as avaliações dos usuários e a média de notas de cada filme.
@@ -89,7 +90,7 @@ Você precisa de:
 - Git.
 - Python **3.11 ou superior**, com suporte a ambientes virtuais.
 - Node.js **22.12 ou superior** e npm.
-- Os dez arquivos CSV fornecidos para a atividade, reunidos em uma pasta.
+- Os dez arquivos CSV da atividade na pasta `backend/app/data/`.
 
 Clone o projeto e entre na pasta criada:
 
@@ -159,7 +160,7 @@ JWT_SECRET_KEY='COLE_AQUI_A_CHAVE_GERADA'
 JWT_EXPIRE_MINUTES=60
 ```
 
-Não use os textos de exemplo como credenciais. As variáveis de autenticação precisam estar preenchidas antes de executar a aplicação, as migrações ou o importador. Se partir de `.env.example`, acrescente as configurações administrativas acima.
+Não use os textos de exemplo como credenciais. As variáveis de autenticação precisam estar preenchidas antes de executar a aplicação, as migrações ou o importador. Você também pode copiar `.env.example` para `.env` e preencher o usuário, o hash da senha e a chave JWT.
 
 O administrador é configurado pelo ambiente; não há cadastro público de contas. A senha é verificada pelo hash Argon2 e o login emite um JWT com validade padrão de **60 minutos**.
 
@@ -177,42 +178,37 @@ python -m alembic upgrade head
 
 O banco padrão será criado em `backend/rocketlab.db`. Não é necessário instalar um servidor de banco de dados separado.
 
-Reúna estes arquivos em uma única pasta:
+As planilhas ficam em `backend/app/data/`, com os arquivos diretamente dentro dessa pasta:
 
 ```text
-dim_movies.csv
-dim_genres.csv
-dim_people.csv
-dim_companies.csv
-dim_reviews.csv
-movies_reviews.csv
-bridge_movie_genre.csv
-bridge_movie_person.csv
-bridge_movie_company.csv
-fact_movies_performance.csv
+backend/app/data/
+├── dim_movies.csv
+├── dim_genres.csv
+├── dim_people.csv
+├── dim_companies.csv
+├── dim_reviews.csv
+├── movies_reviews.csv
+├── bridge_movie_genre.csv
+├── bridge_movie_person.csv
+├── bridge_movie_company.csv
+└── fact_movies_performance.csv
 ```
 
-Informe o caminho dessa pasta ao importador. O caminho pode ser diferente em cada computador; não é necessário editar o código.
-
-Exemplo para Linux/macOS:
+Dentro de `backend/`, com o ambiente virtual ativo, execute no Linux, macOS ou Windows:
 
 ```bash
-python -m app.movies.ingest_csv "/caminho/para/bases_atv_dev1"
+python -m app.movies.ingest_csv app/data
 ```
 
-Exemplo para Windows:
+O caminho é relativo à pasta `backend/`; não execute esse comando a partir da raiz do repositório. Se algum CSV estiver ausente, coloque o arquivo fornecido pela atividade em `backend/app/data/` antes da importação.
 
-```powershell
-python -m app.movies.ingest_csv "C:\caminho\para\bases_atv_dev1"
-```
-
-Se você colocar os CSVs em uma pasta `dados` na raiz do projeto, use, a partir de `backend/`:
+Também é possível importar de outra pasta, sem alterar o código:
 
 ```bash
-python -m app.movies.ingest_csv ../dados
+python -m app.movies.ingest_csv "/caminho/para/as/planilhas"
 ```
 
-Os CSVs precisam ser disponibilizados nesse caminho; não assuma que vieram junto com o clone. Use aspas quando o caminho contiver espaços.
+Use aspas quando o caminho contiver espaços.
 
 O importador carrega filmes, gêneros, pessoas, produtoras, relacionamentos, avaliações e desempenho financeiro. Ao final, recalcula os resumos das avaliações individuais. As planilhas não são reescritas.
 
@@ -225,7 +221,7 @@ Para preparar um banco separado, altere `DATABASE_URL` para outro arquivo SQLite
 Dentro de `backend/`, com o ambiente configurado:
 
 ```bash
-python -m uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 Endereços locais:
@@ -249,12 +245,12 @@ Em outro terminal, a partir da raiz do repositório:
 ```bash
 cd frontend
 npm ci
-npm run dev -- --port 5173 --strictPort
+npm run dev
 ```
 
 Abra [http://localhost:5173](http://localhost:5173).
 
-O uso de `--strictPort` evita que o Vite mude silenciosamente para outra porta, que pode não estar autorizada no CORS. Se a porta estiver ocupada, encerre a outra instância antes de iniciar novamente.
+Confira o endereço exibido pelo Vite no terminal. Se a porta 5173 estiver ocupada, ele pode escolher outra. Para usar a configuração de CORS deste README, encerre a outra instância e execute `npm run dev` novamente na porta 5173.
 
 Atualmente, a URL da API está definida em `frontend/src/data/api.ts`:
 
@@ -268,7 +264,7 @@ Se mudar o endereço ou a porta do frontend, atualize `BACKEND_CORS_ORIGINS` no 
 
 ## Primeiro uso
 
-1. Abra o catálogo e pesquise um título existente na base.
+1. Abra o catálogo, pesquise um título e teste o seletor de gêneros. Os filtros são combinados; use **Todos os gêneros** para remover apenas o filtro de gênero ou **Limpar filtros** para remover ambos.
 2. Clique no card para consultar os detalhes e as avaliações.
 3. Envie uma avaliação e confira a nova nota média.
 4. Acesse **Administração** e entre com o usuário e a senha configurados.
@@ -286,7 +282,8 @@ Todas as rotas abaixo, exceto `/health`, usam o prefixo `/api/v1`.
 | --- | --- | --- | --- |
 | GET | `/health` | Público | Verificar se a API responde |
 | POST | `/auth/login` | Público | Validar as credenciais administrativas |
-| GET | `/movies` | Público | Listar filmes com paginação e busca por título |
+| GET | `/movies` | Público | Listar filmes com paginação e filtros por título e gênero |
+| GET | `/movies/genres` | Público | Listar os gêneros com filmes associados |
 | GET | `/movies/{movie_id}` | Público | Consultar informações e avaliações do filme |
 | POST | `/movies/{movie_id}/reviews` | Público | Criar uma avaliação |
 | POST | `/movies` | Administrador | Cadastrar filme |
@@ -297,13 +294,17 @@ Todas as rotas abaixo, exceto `/health`, usam o prefixo `/api/v1`.
 ### Busca e paginação
 
 ```text
-GET /api/v1/movies?page=1&page_size=20&q=avengers
+GET /api/v1/movies?page=1&page_size=20&q=avengers&genero=Action
 ```
 
 - `page`: começa em 1.
 - `page_size`: de 1 a 100; padrão de 20.
 - `q`: opcional; pesquisa parte do título sem diferenciar maiúsculas e minúsculas no comportamento usual da consulta. Por ser uma busca por trecho, também pode encontrar palavras maiores que contenham o texto pesquisado.
-- Sem `q`, ou com texto em branco, a consulta retorna o catálogo paginado sem filtro por título.
+- `genero`: opcional; nome exato retornado por `GET /api/v1/movies/genres`, como `Drama` ou `Action`.
+- Título e gênero são combinados: o filme precisa atender aos dois filtros quando ambos são enviados.
+- Sem `q`, a consulta pode filtrar somente por gênero. Sem os dois filtros, retorna o catálogo completo paginado.
+- Na interface, selecionar um gênero aplica a pesquisa com o título digitado e retorna à página 1. **Limpar filtros** remove os dois critérios.
+- A contagem de resultados e o total de páginas consideram os filtros. Uma combinação sem correspondências retorna `items: []`, `total: 0` e `total_pages: 0`.
 
 A resposta contém `items`, `page`, `page_size`, `total` e `total_pages`. As avaliações são incluídas nos detalhes do filme, sem endpoint separado de paginação de avaliações.
 
@@ -399,6 +400,7 @@ backend/
 │   ├── auth/         # Login, JWT e proteção administrativa
 │   ├── core/         # Configurações e logs
 │   ├── dashboard/    # Consultas analíticas e contrato do dashboard
+│   ├── data/         # Os dez arquivos CSV da atividade
 │   ├── db/           # Base ORM e sessões do banco
 │   └── movies/       # Catálogo, avaliações e importação de CSVs
 ├── migrations/      # Evolução do esquema com Alembic
@@ -418,6 +420,8 @@ frontend/
 O dashboard consulta as tabelas existentes: não exige novos models nem uma migração própria. A aplicação consulta o banco a cada leitura; não há cache de respostas implementado nesta versão.
 
 ## Verificações de desenvolvimento
+
+A instalação foi validada no Linux. As instruções para Windows e macOS ainda não foram validadas nesta entrega.
 
 No backend, com o ambiente virtual ativo e o `.env` configurado:
 
@@ -458,7 +462,7 @@ Para revisar a responsividade, use o modo de dispositivos do navegador e confira
 | Erro de CORS | Abra o frontend em `localhost:5173` ou configure exatamente a origem utilizada |
 | API não inicia por falta de configuração | Confira as variáveis administrativas no `.env` e execute dentro de `backend/` |
 | Erro de tabela inexistente | Execute `python -m alembic upgrade head` antes de importar ou consultar |
-| Importador não encontra os arquivos | Confira o caminho da pasta e os nomes dos dez CSVs |
+| Importador não encontra os arquivos | Execute de dentro de `backend/` e confira se os dez CSVs estão diretamente em `app/data/` |
 | Catálogo está vazio | Confirme a importação e se API e importador usam o mesmo `DATABASE_URL` |
 | Operação administrativa retorna 401 | Faça login novamente; o token pode estar ausente ou expirado |
 | Dashboard ainda mostra valores anteriores | Clique em Atualizar dados ou reabra a aba |
