@@ -3,17 +3,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.db.session import get_db
 from app.movies.schemas import MovieListResponse, MovieDetail, MovieCreate, MovieCreated, MovieUpdate, ItemsReview, ReviewCreate
-from app.movies.service import list_movies, get_movie, create_movie, update_movie, delete_movie, create_review
+from app.movies.service import list_movies, list_genres, get_movie, create_movie, update_movie, delete_movie, create_review
 
 router = APIRouter()
+
 @router.get("", response_model=MovieListResponse)
 async def get_movies(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     q: str | None = Query(default=None),
+    genero: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await list_movies(db = db, page = page, page_size = page_size, q = q)
+    return await list_movies(
+        db=db,
+        page=page,
+        page_size=page_size,
+        q=q,
+        genero=genero,
+    )
+@router.get("/genres", response_model=list[str])
+async def get_genres(
+    db: AsyncSession = Depends(get_db),
+):
+    return await list_genres(db=db)
 
 @router.get("/{movie_id}", response_model=MovieDetail)
 async def get_movies_by_id(movie_id: str, db: AsyncSession = Depends(get_db)):

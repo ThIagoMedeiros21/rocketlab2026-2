@@ -16,6 +16,7 @@ export async function fetchMovies(
   page = 1,
   pageSize = 20,
   query = '',
+  genre = '',
 ): Promise<MovieListResponse> {
   const params = new URLSearchParams({
     page: String(page),
@@ -26,6 +27,10 @@ export async function fetchMovies(
     params.set('q', query.trim())
   }
 
+  if (genre.trim()) {
+    params.set('genero', genre.trim())
+  }
+
   const response = await fetch(`${API_URL}/movies?${params}`)
 
   if (!response.ok) {
@@ -34,8 +39,9 @@ export async function fetchMovies(
 
   return response.json() as Promise<MovieListResponse>
 }
-
-export async function fetchMovie(movieId: string): Promise<MovieDetail> {
+export async function fetchMovie(
+  movieId: string,
+): Promise<MovieDetail> {
   const response = await fetch(
     `${API_URL}/movies/${encodeURIComponent(movieId)}`,
   )
@@ -46,7 +52,6 @@ export async function fetchMovie(movieId: string): Promise<MovieDetail> {
 
   return response.json() as Promise<MovieDetail>
 }
-
 export async function createReview(
   movieId: string,
   review: ReviewCreate,
@@ -200,4 +205,14 @@ export async function fetchDashboard(
 
   await checkAdminResponse(response)
   return response.json() as Promise<DashboardResponse>
+}
+
+export async function fetchGenres(): Promise<string[]> {
+  const response = await fetch(`${API_URL}/movies/genres`)
+
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar os gêneros.')
+  }
+
+  return response.json() as Promise<string[]>
 }

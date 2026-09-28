@@ -21,6 +21,7 @@ async def list_movies(
     page: int,
     page_size: int,
     q: str | None = None,
+    genero: str | None = None,
 ) -> MovieListResponse:
     deslocamento = (page - 1) * page_size
 
@@ -29,6 +30,12 @@ async def list_movies(
     if q and q.strip():
         filtros.append(
             DimMovie.titulo.ilike(f"%{q.strip()}%")
+        )
+    if genero and genero.strip():
+        filtros.append(
+        DimMovie.genres.any(
+            DimGenre.nome_genero == genero.strip()
+        )
         )
     consulta = (
         select(DimMovie)
@@ -286,3 +293,13 @@ async def create_review(
         comentario=avaliacao.comentario,
         created_at=avaliacao.created_at,
     )
+
+async def list_genres(db: AsyncSession) -> list[str]:
+    consulta = (
+        select(DimGenre.nome_genero)
+        .where(DimGenre.movies.any())
+        .order_by(DimGenre.nome_genero)
+    )
+
+    resultado = await db.scalars(consulta)
+    return list(resultado.all())
