@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import MovieCreateForm from '../components/MovieCreateForm'
 import MovieManageList from '../components/MovieManageList'
 import AdminDashboard from '../components/AdminDashboard'
+
 type AdminPageProps = {
   token: string
   onLogout: () => void
@@ -13,9 +14,56 @@ export default function AdminPage({
   token,
   onLogout,
 }: AdminPageProps) {
-  const [view, setView] = useState<'dashboard' | 'manage' | 'create'>(
-  'dashboard',
-)
+  const [params, setParams] = useSearchParams()
+
+  const tab = params.get('aba')
+  const view =
+    tab === 'manage' || tab === 'create' ? tab : 'dashboard'
+
+  const rawPage = Number(params.get('page') ?? '1')
+  const page =
+    Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1
+
+  const search = params.get('q') ?? ''
+
+  function setView(nextView: 'dashboard' | 'manage' | 'create') {
+    setParams((current) => {
+      const next = new URLSearchParams(current)
+      next.set('aba', nextView)
+      return next
+    })
+  }
+
+  const changePage = useCallback(
+    (nextPage: number, replace = false) => {
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          next.set('aba', 'manage')
+          next.set('page', String(Math.max(1, nextPage)))
+          return next
+        },
+        { replace },
+      )
+    },
+    [setParams],
+  )
+
+  function changeSearch(value: string) {
+    setParams((current) => {
+      const next = new URLSearchParams(current)
+      next.set('aba', 'manage')
+      next.set('page', '1')
+
+      if (value.trim()) {
+        next.set('q', value.trim())
+      } else {
+        next.delete('q')
+      }
+
+      return next
+    })
+  }
 
   function tabClasses(active: boolean) {
     return [
@@ -56,7 +104,8 @@ export default function AdminPage({
           </h1>
 
           <p className="mt-4 max-w-xl leading-7 text-slate-400">
-            Cadastre filmes e mantenha as informações do catálogo atualizadas.
+            Cadastre filmes e mantenha as informações do catálogo
+            atualizadas.
           </p>
 
           <div
@@ -71,6 +120,7 @@ export default function AdminPage({
             >
               Dashboard
             </button>
+
             <button
               type="button"
               aria-pressed={view === 'manage'}
@@ -91,11 +141,24 @@ export default function AdminPage({
           </div>
 
           <div className="mt-6">
-            {view === 'dashboard' && <AdminDashboard token={token} />}
+            {view === 'dashboard' && (
+              <AdminDashboard token={token} />
+            )}
 
-            {view === 'manage' && <MovieManageList token={token} />}
+            {view === 'manage' && (
+              <MovieManageList
+                key={JSON.stringify([page, search])}
+                token={token}
+                page={page}
+                search={search}
+                onPageChange={changePage}
+                onSearch={changeSearch}
+              />
+            )}
 
-            {view === 'create' && <MovieCreateForm token={token} />}
+            {view === 'create' && (
+              <MovieCreateForm token={token} />
+            )}
           </div>
         </section>
       </div>

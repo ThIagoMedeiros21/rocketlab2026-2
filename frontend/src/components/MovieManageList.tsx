@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import {
   deleteMovie,
@@ -17,6 +17,10 @@ import type {
 
 type MovieManageListProps = {
   token: string
+  page: number
+  search: string
+  onPageChange: (page: number, replace?: boolean) => void
+  onSearch: (query: string) => void
 }
 
 const inputClasses =
@@ -110,6 +114,7 @@ function MovieEditForm({
             <span className="mb-2 block text-sm text-slate-300">
               Título
             </span>
+
             <input
               required
               value={titulo}
@@ -122,6 +127,7 @@ function MovieEditForm({
             <span className="mb-2 block text-sm text-slate-300">
               Ano
             </span>
+
             <input
               type="number"
               min={1}
@@ -138,6 +144,7 @@ function MovieEditForm({
           <span className="mb-2 block text-sm text-slate-300">
             Sinopse
           </span>
+
           <textarea
             rows={5}
             value={sinopse}
@@ -175,10 +182,14 @@ function MovieEditForm({
 
 export default function MovieManageList({
   token,
+  page,
+  search,
+  onPageChange,
+  onSearch,
 }: MovieManageListProps) {
-  const [query, setQuery] = useState('')
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
+  const location = useLocation()
+
+  const [query, setQuery] = useState(search)
   const [reload, setReload] = useState(0)
   const [data, setData] = useState<MovieListResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -187,6 +198,7 @@ export default function MovieManageList({
   const [editing, setEditing] = useState<MovieDetail | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  const returnTo = `${location.pathname}${location.search}`
   const locked = loading || busyId !== null || editing !== null
 
   useEffect(() => {
@@ -201,12 +213,10 @@ export default function MovieManageList({
 
         if (!active) return
 
-        // Se a última linha de uma página foi excluída,
-        // retorna para uma página que ainda tenha resultados.
         const lastPage = Math.max(1, result.total_pages)
 
         if (page > lastPage) {
-          setPage(lastPage)
+          onPageChange(lastPage, true)
           return
         }
 
@@ -217,7 +227,9 @@ export default function MovieManageList({
           setError(errorMessage(cause))
         }
       } finally {
-        if (active) setLoading(false)
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
@@ -226,15 +238,14 @@ export default function MovieManageList({
     return () => {
       active = false
     }
-  }, [page, search, reload])
+  }, [page, search, reload, onPageChange])
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (locked) return
 
     setNotice(null)
-    setPage(1)
-    setSearch(query.trim())
+    onSearch(query.trim())
     setReload((value) => value + 1)
   }
 
@@ -282,6 +293,7 @@ export default function MovieManageList({
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-8">
       <h2 className="text-xl font-bold">Gerenciar filmes</h2>
+
       <p className="mt-2 text-sm leading-6 text-slate-400">
         Busque pelo título para consultar, editar ou excluir um filme.
       </p>
@@ -292,6 +304,7 @@ export default function MovieManageList({
       >
         <label className="min-w-0 flex-1">
           <span className="sr-only">Buscar filme pelo título</span>
+
           <input
             type="search"
             value={query}
@@ -326,6 +339,7 @@ export default function MovieManageList({
           className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-300"
         >
           <p>{error}</p>
+
           <button
             type="button"
             disabled={locked}
@@ -357,6 +371,7 @@ export default function MovieManageList({
                   <div className="min-w-0">
                     <Link
                       to={`/movies/${movie.id}`}
+                      state={{ returnTo }}
                       className="break-words font-semibold text-white hover:text-amber-300"
                     >
                       {movie.titulo}
@@ -364,6 +379,7 @@ export default function MovieManageList({
 
                     <p className="mt-1 text-sm text-slate-400">
                       {movie.ano_lancamento ?? 'Ano não informado'}
+
                       {movie.generos.length > 0 &&
                         ` · ${movie.generos.join(', ')}`}
                     </p>
@@ -391,7 +407,10 @@ export default function MovieManageList({
                 </div>
 
                 {busyId === movie.id && (
-                  <p role="status" className="mt-3 text-sm text-amber-300">
+                  <p
+                    role="status"
+                    className="mt-3 text-sm text-amber-300"
+                  >
                     Processando...
                   </p>
                 )}
@@ -432,7 +451,7 @@ export default function MovieManageList({
                 <button
                   type="button"
                   disabled={locked || page <= 1}
-                  onClick={() => setPage((value) => value - 1)}
+                  onClick={() => onPageChange(page - 1)}
                   className={buttonClasses}
                 >
                   Anterior
@@ -441,7 +460,7 @@ export default function MovieManageList({
                 <button
                   type="button"
                   disabled={locked || page >= data.total_pages}
-                  onClick={() => setPage((value) => value + 1)}
+                  onClick={() => onPageChange(page + 1)}
                   className={buttonClasses}
                 >
                   Próxima
